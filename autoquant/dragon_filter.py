@@ -20,6 +20,9 @@ class StockFilterConfig:
     exclude_paused: bool = True
     min_listing_days: int = 90  # 上市至少3个月
     
+    # 主板股票过滤（默认只分析主板）
+    main_board_only: bool = True  # 只分析主板股票
+    
     # 第二层：龙头定位
     index_constituents: List[str] = None  # 指数成分股列表
     
@@ -59,13 +62,51 @@ class FinancialData:
 class DragonStockFilter:
     """龙头股筛选器"""
     
+    # 主板股票代码规则
+    # 沪市主板: 600xxx, 601xxx, 603xxx (不含688科创板)
+    # 深市主板: 000xxx, 001xxx (不含002已合并、300创业板、688科创板)
+    MAIN_BOARD_PREFIXES = ['600', '601', '603', '000', '001']
+    
     def __init__(self, config: StockFilterConfig = None):
         self.config = config or StockFilterConfig()
+    
+    @staticmethod
+    def is_main_board(symbol: str) -> bool:
+        """
+        判断是否为主板股票
+        
+        主板股票规则:
+        - 沪市主板: 600xxx, 601xxx, 603xxx
+        - 深市主板: 000xxx, 001xxx
+        
+        排除:
+        - 科创板: 688xxx
+        - 创业板: 300xxx
+        - 北交所: 8xxxxx, 4xxxxx
+        """
+        # 处理不同格式的股票代码
+        code = symbol.split('.')[0] if '.' in symbol else symbol
+        code = code.lstrip('0') if len(code) > 3 else code  # 去除前导0
+        
+        # 检查前缀
+        for prefix in DragonStockFilter.MAIN_BOARD_PREFIXES:
+            if symbol.startswith(prefix):
+                return True
+        
+        # 特殊处理：SH/SZ后缀格式
+        if '.SH' in symbol or '.SZ' in symbol:
+            pure_code = symbol.split('.')[0]
+            for prefix in DragonStockFilter.MAIN_BOARD_PREFIXES:
+                if pure_code.startswith(prefix):
+                    return True
+        
+        return False
     
     def filter_layer1_global(self, stocks: List[FinancialData]) -> List[FinancialData]:
         """
         第一层：全局排雷
         排除ST、*ST、停牌及上市不满3个月的次新股
+        新增：主板股票过滤（可选）
         """
         filtered = []
         for stock in stocks:
@@ -74,6 +115,9 @@ class DragonStockFilter:
             if self.config.exclude_paused and stock.is_paused:
                 continue
             if stock.listing_days < self.config.min_listing_days:
+                continue
+            # 主板股票过滤
+            if self.config.main_board_only and not self.is_main_board(stock.symbol):
                 continue
             filtered.append(stock)
         

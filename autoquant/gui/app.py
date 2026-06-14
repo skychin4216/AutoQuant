@@ -583,6 +583,42 @@ class MainWindow(QMainWindow):
         data_group.setLayout(data_layout)
         left_layout.addWidget(data_group)
         
+        # 股票筛选设置
+        filter_group = QGroupBox("股票筛选")
+        filter_layout = QFormLayout()
+        
+        # 主板股票过滤复选框（默认勾选）
+        self.main_board_checkbox = QCheckBox("只分析主板股票")
+        self.main_board_checkbox.setChecked(True)  # 默认勾选
+        self.main_board_checkbox.setToolTip(
+            "主板股票:\n"
+            "- 沪市主板: 600xxx, 601xxx, 603xxx\n"
+            "- 深市主板: 000xxx, 001xxx\n\n"
+            "排除:\n"
+            "- 科创板 (688xxx)\n"
+            "- 创业板 (300xxx)\n"
+            "- 北交所 (8xxxxx)"
+        )
+        filter_layout.addRow(self.main_board_checkbox)
+        
+        # 指数选择
+        self.index_combo = QComboBox()
+        self.index_combo.addItems(['中证A500', '中证500', '沪深300', '全市场'])
+        self.index_combo.setToolTip("选择参考指数成分股作为筛选范围")
+        filter_layout.addRow("参考指数:", self.index_combo)
+        
+        # 获取主板股票按钮
+        self.fetch_mainboard_btn = QPushButton("获取主板股票列表")
+        self.fetch_mainboard_btn.clicked.connect(self.fetch_mainboard_stocks)
+        filter_layout.addRow(self.fetch_mainboard_btn)
+        
+        # 显示当前股票数量
+        self.stock_count_label = QLabel("主板股票: 0 只")
+        filter_layout.addRow(self.stock_count_label)
+        
+        filter_group.setLayout(filter_layout)
+        left_layout.addWidget(filter_group)
+        
         # 操作按钮
         button_group = QGroupBox("操作")
         button_layout = QVBoxLayout()
@@ -675,6 +711,33 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, "选择CSV文件", "", "CSV Files (*.csv)")
         if file_path:
             self.statusBar().showMessage(f"已加载: {file_path}")
+    
+    def fetch_mainboard_stocks(self):
+        """获取主板股票列表"""
+        from autoquant.dragon_filter import DragonStockFilter
+        
+        # 获取数据目录中的所有股票
+        data_dir = 'E:\\workspace\\AutoQuant\\data'
+        feed = DataFeed(source='csv', data_dir=data_dir)
+        all_symbols = feed.get_symbols()
+        
+        # 根据主板过滤选项筛选
+        main_board_only = self.main_board_checkbox.isChecked()
+        
+        if main_board_only:
+            mainboard_symbols = [s for s in all_symbols if DragonStockFilter.is_main_board(s)]
+            self.stock_count_label.setText(f"主板股票: {len(mainboard_symbols)} 只")
+            self.statusBar().showMessage(f"已获取 {len(mainboard_symbols)} 只主板股票")
+            
+            # 显示股票列表
+            if mainboard_symbols:
+                stock_list_msg = "主板股票列表:\n" + "\n".join(mainboard_symbols[:20])
+                if len(mainboard_symbols) > 20:
+                    stock_list_msg += f"\n... 共 {len(mainboard_symbols)} 只"
+                QMessageBox.information(self, "主板股票", stock_list_msg)
+        else:
+            self.stock_count_label.setText(f"全部股票: {len(all_symbols)} 只")
+            self.statusBar().showMessage(f"已获取 {len(all_symbols)} 只全部股票")
     
     def run_backtest(self):
         """运行回测"""

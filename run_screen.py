@@ -2,6 +2,7 @@
 """
 AutoQuant 龙头股筛选工具 - 命令行版
 无需GUI，直接运行筛选和分析
+默认只分析主板股票
 """
 
 import sys
@@ -17,22 +18,34 @@ DATA_DIR = 'E:\\workspace\\AutoQuant\\data'
 DEFAULT_START_DATE = '2025-01-01'
 DEFAULT_END_DATE = datetime.now().strftime('%Y-%m-%d')
 
-def load_stock_data():
-    """加载本地数据"""
+def load_stock_data(main_board_only=True):
+    """加载本地数据，默认只加载主板股票"""
     print("📂 加载本地数据...")
     feed = DataFeed(source='csv', data_dir=DATA_DIR)
     symbols = feed.get_symbols()
-    print(f"   找到 {len(symbols)} 只股票")
+    
+    # 主板股票过滤
+    if main_board_only:
+        symbols = [s for s in symbols if DragonStockFilter.is_main_board(s)]
+        print(f"   主板股票: {len(symbols)} 只")
+    else:
+        print(f"   全部股票: {len(symbols)} 只")
+    
     return feed, symbols
 
-def run_screening(index_type='a500'):
+def run_screening(index_type='a500', main_board_only=True):
     """运行龙头股筛选"""
     print("\n" + "=" * 60)
     print(f"龙头股筛选 ({index_type.upper()})")
+    if main_board_only:
+        print("【主板股票模式】只分析主板股票")
     print("=" * 60)
     
     # 创建筛选器
     filter = create_dragon_filter(index_type)
+    
+    # 设置主板股票过滤（默认启用）
+    filter.config.main_board_only = main_board_only
     
     # 使用宽松的筛选条件
     filter.config.min_market_cap = 30  # 降低市值要求
@@ -43,8 +56,8 @@ def run_screening(index_type='a500'):
     filter.config.pe_threshold = 50
     filter.config.pb_threshold = 8
     
-    # 加载数据
-    feed, symbols = load_stock_data()
+    # 加载数据（默认只加载主板股票）
+    feed, symbols = load_stock_data(main_board_only)
     
     # 获取可用的符号 - 优先使用本地数据中的股票
     available_symbols = [s for s in symbols if '.' in s]  # A股格式
