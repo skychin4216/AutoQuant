@@ -13,7 +13,8 @@ from .dragon_filter import (
 from .hot_analyzer import (
     HotStockAnalyzer,
     HotStock,
-    HotSector
+    HotSector,
+    SectorHotRanker
 )
 
 # vn.py Integration
@@ -47,6 +48,7 @@ __all__ = [
     'HotStockAnalyzer',
     'HotStock',
     'HotSector',
+    'SectorHotRanker',
     # vn.py
     'VnpyTrader',
     'VnpyConfig',
