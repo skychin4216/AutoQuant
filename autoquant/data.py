@@ -113,13 +113,36 @@ class AKShareDataSource(DataSource):
 class CSVDataSource(DataSource):
     def __init__(self, data_dir: str = 'data'):
         self.data_dir = data_dir
-
+        self._file_map = {}  # 文件名映射：代码 -> 完整文件名
+    
+    def _build_file_map(self):
+        """构建文件名映射，支持带中文描述的文件名"""
+        if not os.path.exists(self.data_dir):
+            return
+        
+        for f in os.listdir(self.data_dir):
+            if f.endswith('.csv'):
+                # 从文件名提取股票代码
+                # 格式: 600519.SH_贵州茅台-白酒龙头.csv 或 AAPL_苹果-科技龙头(美股).csv
+                code = f.split('_')[0]  # 取第一部分作为代码
+                self._file_map[code] = f
+    
     def get_price(self, symbol: str, start_date: str, end_date: str, frequency: str = 'D') -> pd.DataFrame:
         try:
-            file_path = os.path.join(self.data_dir, f"{symbol}.csv")
+            # 构建文件映射
+            if not self._file_map:
+                self._build_file_map()
+            
+            # 查找文件
+            file_name = self._file_map.get(symbol, f"{symbol}.csv")
+            file_path = os.path.join(self.data_dir, file_name)
+            
             if not os.path.exists(file_path):
-                logger.warning(f"CSV file not found: {file_path}")
-                return pd.DataFrame()
+                # 尝试直接使用symbol作为文件名
+                file_path = os.path.join(self.data_dir, f"{symbol}.csv")
+                if not os.path.exists(file_path):
+                    logger.warning(f"CSV file not found for symbol: {symbol}")
+                    return pd.DataFrame()
             
             data = pd.read_csv(file_path)
             data['date'] = pd.to_datetime(data['date'])
@@ -137,7 +160,13 @@ class CSVDataSource(DataSource):
     def get_symbols(self, market: str = 'stock') -> List[str]:
         if not os.path.exists(self.data_dir):
             return []
-        return [f.replace('.csv', '') for f in os.listdir(self.data_dir) if f.endswith('.csv')]
+        
+        # 构建文件映射
+        if not self._file_map:
+            self._build_file_map()
+        
+        # 返回股票代码列表（不含中文描述）
+        return list(self._file_map.keys())
 
 
 class DataFeed:
