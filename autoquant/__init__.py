@@ -10,6 +10,11 @@ from .dragon_filter import (
     IndustryMomentumAnalyzer,
     create_dragon_filter
 )
+from .hot_analyzer import (
+    HotStockAnalyzer,
+    HotStock,
+    HotSector
+)
 
 # vn.py Integration
 try:
@@ -38,6 +43,10 @@ __all__ = [
     'FinancialData',
     'IndustryMomentumAnalyzer',
     'create_dragon_filter',
+    # Hot Stock Analyzer
+    'HotStockAnalyzer',
+    'HotStock',
+    'HotSector',
     # vn.py
     'VnpyTrader',
     'VnpyConfig',
