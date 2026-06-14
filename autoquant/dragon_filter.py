@@ -2,13 +2,14 @@
 龙头股筛选算法模块
 实现机构级别的漏斗式股票筛选逻辑
 
-2025年热门板块龙头股（优先筛选）:
-- 光通信: 中际旭创(300308)、新易盛(300502)、天孚通信(300393) - "易中天"组合
-- 存储: 兆易创新(603986)
-- 半导体: 北方华创(002371)、韦尔股份(603501)
-- AI算力: 科大讯飞(002230)
-- 锂电池: 赣锋锂业(002460)
-- 稀土: 北方稀土(600111)
+板块结构:
+1. 光通信（子板块: 光芯片、光材料、光模块、光纤光缆）
+2. 存储（子板块: 存储芯片、存储模组）
+3. 半导体（子板块: 半导体设备、半导体设计、封装测试）
+4. 稀土（子板块: 稀土资源、稀土永磁）
+5. 有色金属（子板块: 铜、钼、铝）
+6. 新能源（子板块: 锂电、光伏、风电）
+7. 消费（子板块: 白酒、家电）
 """
 
 import pandas as pd
@@ -19,29 +20,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# 2025年热门板块龙头股列表（允许创业板热门龙头）
-HOT_SECTOR_LEADERS: Set[str] = {
-    # 光通信板块 - "易中天"组合（创业板但允许）
-    '300308.SZ',  # 中际旭创 - 光模块龙头
-    '300502.SZ',  # 新易盛 - 光模块龙头
-    '300393.SZ',  # 天孚通信 - 光器件龙头
-    # 存储板块
-    '603986.SH',  # 兆易创新 - 存储芯片龙头
-    # 半导体板块
-    '002371.SZ',  # 北方华创 - 半导体设备龙头
-    '603501.SH',  # 韦尔股份 - 半导体设计龙头
-    # AI算力板块
-    '002230.SZ',  # 科大讯飞 - AI算力龙头
-    # 锂电池板块
-    '002460.SZ',  # 赣锋锂业 - 锂电池龙头
-    # 稀土板块
-    '600111.SH',  # 北方稀土 - 稀土龙头
-    # 其他主板龙头
-    '600519.SH',  # 贵州茅台 - 白酒龙头
-    '000858.SZ',  # 五粮液 - 白酒龙头
-    '601318.SH',  # 中国平安 - 保险龙头
-    '600036.SH',  # 招商银行 - 银行龙头
-}
+# 导入板块配置
+try:
+    from .hot_sector_config import HOT_SECTOR_CONFIG, get_main_board_leaders
+    CONFIG_AVAILABLE = True
+except ImportError:
+    CONFIG_AVAILABLE = False
+    logger.warning("hot_sector_config not available")
 
 
 @dataclass
@@ -126,8 +111,15 @@ class DragonStockFilter:
         full_symbol = symbol if '.' in symbol else f"{code}.SZ" if code.startswith('0') or code.startswith('3') else f"{code}.SH"
         
         # 如果允许热门板块龙头，检查是否在热门板块龙头列表中
-        if allow_hot_sector_leaders and full_symbol in HOT_SECTOR_LEADERS:
-            return True
+        if allow_hot_sector_leaders:
+            if CONFIG_AVAILABLE:
+                main_board_leaders = get_main_board_leaders()
+                if full_symbol in main_board_leaders:
+                    return True
+            else:
+                # 使用旧的HOT_SECTOR_LEADERS
+                if full_symbol in HOT_SECTOR_LEADERS:
+                    return True
         
         # 检查前缀
         for prefix in DragonStockFilter.MAIN_BOARD_PREFIXES:
@@ -276,13 +268,20 @@ class DragonStockFilter:
         if stocks is None or len(stocks) == 0:
             stocks = self._get_hot_sector_leaders_data()
         
+        # 获取热门板块龙头列表
+        if CONFIG_AVAILABLE:
+            hot_leaders_dict = get_main_board_leaders()
+            hot_leaders_set = set(hot_leaders_dict.keys())
+        else:
+            hot_leaders_set = HOT_SECTOR_LEADERS
+        
         # 优先筛选热门板块龙头
         hot_leaders = []
         other_stocks = []
         
         for stock in stocks:
             full_symbol = stock.symbol
-            if full_symbol in HOT_SECTOR_LEADERS:
+            if full_symbol in hot_leaders_set:
                 hot_leaders.append(stock)
             else:
                 other_stocks.append(stock)
@@ -308,44 +307,63 @@ class DragonStockFilter:
         # 优先排序：热门板块龙头优先
         final_result = []
         for stock in result:
-            if stock.symbol in HOT_SECTOR_LEADERS:
+            if stock.symbol in hot_leaders_set:
                 final_result.append(stock)
         
         # 然后添加其他筛选通过的股票
         for stock in result:
-            if stock.symbol not in HOT_SECTOR_LEADERS:
+            if stock.symbol not in hot_leaders_set:
                 final_result.append(stock)
         
-        logger.info(f"筛选完成: {len(stocks)} -> {len(final_result)} (热门板块龙头: {len([s for s in final_result if s.symbol in HOT_SECTOR_LEADERS])})")
+        logger.info(f"筛选完成: {len(stocks)} -> {len(final_result)} (热门板块龙头: {len([s for s in final_result if s.symbol in hot_leaders_set])})")
         return final_result, stats
     
     def _get_hot_sector_leaders_data(self) -> List[FinancialData]:
         """
         获取热门板块龙头股的模拟财务数据
+        使用hot_sector_config中的配置
         """
         leaders_data = []
         
-        for symbol in HOT_SECTOR_LEADERS:
-            # 根据股票代码生成模拟财务数据
-            code = symbol.split('.')[0]
-            
-            # 模拟财务数据（龙头股财务指标优秀）
-            stock = FinancialData(
-                symbol=symbol,
-                market_cap=100 + np.random.randint(50, 500),  # 市值100-600亿
-                roe=[18, 19, 20, 21, 22],  # ROE连续5年达标
-                net_profit=[10, 12, 15, 18, 22],  # 净利润连续增长
-                operating_cash_flow=[12, 14, 16, 20, 25],  # 经营现金流 > 净利润
-                revenue=[50, 60, 75, 90, 110],  # 营收增长
-                gross_margin=[35, 36, 38, 40, 42],  # 毛利率稳定
-                debt_ratio=25 + np.random.randint(0, 20),  # 资产负债率 < 50%
-                pe=20 + np.random.randint(5, 15),  # PE合理
-                pb=3 + np.random.randint(1, 3),  # PB合理
-                listing_days=365 + np.random.randint(0, 1000),  # 上市超过1年
-                is_st=False,
-                is_paused=False
-            )
-            leaders_data.append(stock)
+        if CONFIG_AVAILABLE:
+            # 使用新的板块配置
+            leaders_dict = get_main_board_leaders()
+            for symbol, info in leaders_dict.items():
+                stock = FinancialData(
+                    symbol=symbol,
+                    market_cap=100 + np.random.randint(50, 500),  # 市值100-600亿
+                    roe=[18, 19, 20, 21, 22],  # ROE连续5年达标
+                    net_profit=[10, 12, 15, 18, 22],  # 净利润连续增长
+                    operating_cash_flow=[12, 14, 16, 20, 25],  # 经营现金流 > 净利润
+                    revenue=[50, 60, 75, 90, 110],  # 营收增长
+                    gross_margin=[35, 36, 38, 40, 42],  # 毛利率稳定
+                    debt_ratio=25 + np.random.randint(0, 20),  # 资产负债率 < 50%
+                    pe=20 + np.random.randint(5, 15),  # PE合理
+                    pb=3 + np.random.randint(1, 3),  # PB合理
+                    listing_days=365 + np.random.randint(0, 1000),  # 上市超过1年
+                    is_st=False,
+                    is_paused=False
+                )
+                leaders_data.append(stock)
+        else:
+            # 使用旧的HOT_SECTOR_LEADERS
+            for symbol in HOT_SECTOR_LEADERS:
+                stock = FinancialData(
+                    symbol=symbol,
+                    market_cap=100 + np.random.randint(50, 500),
+                    roe=[18, 19, 20, 21, 22],
+                    net_profit=[10, 12, 15, 18, 22],
+                    operating_cash_flow=[12, 14, 16, 20, 25],
+                    revenue=[50, 60, 75, 90, 110],
+                    gross_margin=[35, 36, 38, 40, 42],
+                    debt_ratio=25 + np.random.randint(0, 20),
+                    pe=20 + np.random.randint(5, 15),
+                    pb=3 + np.random.randint(1, 3),
+                    listing_days=365 + np.random.randint(0, 1000),
+                    is_st=False,
+                    is_paused=False
+                )
+                leaders_data.append(stock)
         
         return leaders_data
     
