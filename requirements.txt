@@ -1,0 +1,50 @@
+# 核心量化依赖
+backtrader>=1.9.76.123
+vectorbt>=0.22.0
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+TA-Lib>=0.4.25
+
+# 数据获取
+yfinance>=0.2.31
+tushare>=1.2.89
+akshare>=1.10.0
+
+# 可视化
+matplotlib>=3.7.0
+plotly>=5.15.0
+seaborn>=0.12.0
+
+# 机器学习
+scikit-learn>=1.2.0
+xgboost>=2.0.0
+lightgbm>=3.3.0
+
+# 工具库
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+loguru>=0.7.0
+click>=8.0.0
+
+# GUI
+PyQt5>=5.15.0
+matplotlib>=3.7.0
+
+# AI
+openai>=1.0.0
+anthropic>=0.18.0
+
+# vn.py
+vnpy>=2.0.0
+vnpy_ctp>=6.5.0
+
+# Qlib
+qlib>=0.10.0
+
+# 打包
+pyinstaller>=6.0.0
+
+# 测试
+pytest>=7.0.0
+pytest-cov>=4.0.0

@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.bak
+*.cache
+
+# Compile files
+*.pyc
+*.pyo
+
+# Data files (optional - uncomment if you want to exclude data)
+# data/
+# *.csv
+# *.parquet
+
+# Secrets
+.env
+*.env
+secrets.json
+credentials.json
