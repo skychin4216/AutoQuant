@@ -27,6 +27,33 @@ MAINBOARD_STOCKS = {
     '002594.SZ': '比亚迪-新能源车龙头',  # 注意：002属于中小板，已并入主板
 }
 
+# 2025年热点板块龙头股
+HOT_STOCKS_2025 = {
+    # 光通信板块
+    '300308.SZ': '中际旭创-光通信龙头(创业板)',  # AI算力光模块龙头
+    '300502.SZ': '新易盛-光通信龙头(创业板)',    # 光模块龙头
+    '002281.SZ': '光迅科技-光通信龙头',          # 光器件龙头
+    
+    # 存储板块
+    '603986.SH': '兆易创新-存储芯片龙头',        # 存储芯片龙头
+    '688525.SH': '佰维存储-存储龙头(科创板)',    # 存储芯片
+    
+    # 半导体板块
+    '002371.SZ': '北方华创-半导体设备龙头',      # 半导体设备龙头
+    '603501.SH': '韦尔股份-半导体龙头',          # CIS芯片龙头
+    '688981.SH': '中芯国际-半导体龙头(科创板)',  # 芯片制造龙头
+    
+    # 稀缺小金属板块
+    '600111.SH': '北方稀土-稀土龙头',            # 稀土龙头
+    '002460.SZ': '赣锋锂业-锂矿龙头',            # 锂矿龙头
+    '603993.SH': '洛阳钼业-钼矿龙头',            # 钼矿龙头
+    
+    # 有色金属板块
+    '601899.SH': '紫金矿业-有色金属龙头',        # 黄金+铜龙头
+    '603799.SH': '华友钴业-钴镍龙头',            # 钴镍龙头
+    '600456.SH': '宝钛股份-钛材龙头',            # 钛材龙头
+}
+
 # 其他股票（非主板，用于对比）
 OTHER_STOCKS = {
     '300750.SZ': '宁德时代-电池龙头(创业板)',
@@ -112,7 +139,7 @@ def save_stock_data(symbol, name, data):
 def main():
     """主函数"""
     print("=" * 60)
-    print("龙头股数据生成器")
+    print("龙头股数据生成器 - 2025年热点板块")
     print("=" * 60)
     
     # 创建数据目录
@@ -137,6 +164,15 @@ def main():
     
     print()
     
+    # 生成2025年热点板块龙头股数据
+    print("【2025年热点板块龙头】")
+    print("-" * 40)
+    for symbol, name in HOT_STOCKS_2025.items():
+        data = generate_stock_data(symbol, name, start_date, days)
+        save_stock_data(symbol, name, data)
+    
+    print()
+    
     # 生成非主板股票数据（用于对比）
     print("【非主板股票】")
     print("-" * 40)
@@ -155,7 +191,12 @@ def main():
     
     print()
     print("=" * 60)
-    print(f"✅ 完成！共生成 {len(MAINBOARD_STOCKS) + len(OTHER_STOCKS) + len(US_STOCKS)} 只股票数据")
+    total = len(MAINBOARD_STOCKS) + len(HOT_STOCKS_2025) + len(OTHER_STOCKS) + len(US_STOCKS)
+    print(f"✅ 完成！共生成 {total} 只股票数据")
+    print(f"   - 主板龙头: {len(MAINBOARD_STOCKS)} 只")
+    print(f"   - 热点板块: {len(HOT_STOCKS_2025)} 只")
+    print(f"   - 非主板: {len(OTHER_STOCKS)} 只")
+    print(f"   - 美股: {len(US_STOCKS)} 只")
     print(f"📂 数据目录: {DATA_DIR}")
     print("=" * 60)
 

@@ -64,8 +64,8 @@ class DragonStockFilter:
     
     # 主板股票代码规则
     # 沪市主板: 600xxx, 601xxx, 603xxx (不含688科创板)
-    # 深市主板: 000xxx, 001xxx (不含002已合并、300创业板、688科创板)
-    MAIN_BOARD_PREFIXES = ['600', '601', '603', '000', '001']
+    # 深市主板: 000xxx, 001xxx, 002xxx (002中小板已并入主板，不含300创业板、688科创板)
+    MAIN_BOARD_PREFIXES = ['600', '601', '603', '000', '001', '002']
     
     def __init__(self, config: StockFilterConfig = None):
         self.config = config or StockFilterConfig()
@@ -77,7 +77,7 @@ class DragonStockFilter:
         
         主板股票规则:
         - 沪市主板: 600xxx, 601xxx, 603xxx
-        - 深市主板: 000xxx, 001xxx
+        - 深市主板: 000xxx, 001xxx, 002xxx (002中小板已并入主板)
         
         排除:
         - 科创板: 688xxx
@@ -86,11 +86,10 @@ class DragonStockFilter:
         """
         # 处理不同格式的股票代码
         code = symbol.split('.')[0] if '.' in symbol else symbol
-        code = code.lstrip('0') if len(code) > 3 else code  # 去除前导0
         
         # 检查前缀
         for prefix in DragonStockFilter.MAIN_BOARD_PREFIXES:
-            if symbol.startswith(prefix):
+            if code.startswith(prefix):
                 return True
         
         # 特殊处理：SH/SZ后缀格式
